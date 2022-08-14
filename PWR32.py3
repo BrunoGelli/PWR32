@@ -33,7 +33,7 @@ readFreq    = 2
 rollSize    = 200
 
 filename        = ""
-tooltip_logo    = 'Developed by Bruno P. Gelli, Aug 2022.\nGit: url'
+tooltip_logo    = 'Developed by Bruno Gelli, Aug 2022.\nMore information at github.com/BrunoGelli/PWR32'
 tooltip_start   = 'Only active once device is connected'
 tooltip_stop    = 'Only active once device is connected'
 tooltip_sdata   = 'Only active when acquisition is stopped'
