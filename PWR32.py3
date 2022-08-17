@@ -25,6 +25,7 @@ datat   = []
 Acquisition = False
 Connected   = False
 Rolling     = False
+LogScale    = False
 
 initial_t   = time.time()
 today       = date.today()
@@ -54,11 +55,18 @@ def draw_figure(canvas, figure, loc=(0, 0)):
 def graph_update(axis, time, measurement, figure_handler, size):
     axis.cla()
     axis.grid()
+    axis.set_yscale("log")
     axis.set_xlabel("Time (s)")
     axis.set_ylabel("Pressure (mBar)")
     if Rolling:
         time = time[-size:]
         measurement = measurement[-size:]
+
+    if LogScale:
+        axis.set_yscale("log")
+    else:
+        axis.set_yscale("linear")
+
     axis.plot(time, measurement,  color='b')
     figure_handler.draw()
 
@@ -89,6 +97,11 @@ def serial_ports(lista):
             lista.append(port +": "+ desc)
 
     return lista
+
+#calculates the pressure
+def volts_to_pressure(volts):
+    volts = float(volts)
+    return pow(10,(volts/0.6)-12)    
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 # defining the list of serial ports (Perhaps could be done in an event)
@@ -138,6 +151,7 @@ file_list_column = [
     [
         sg.Slider(range=(10,2000), default_value=rollSize, disable_number_display = True,  resolution=10,  orientation='horizontal', expand_x=True, enable_events=True, key="-rolling-"),
         sg.Checkbox("Rolling", default = False, enable_events=True, expand_y=True,key="-checkbox-"),
+        sg.Checkbox("LogScale", default = False, enable_events=True, key="-checklog-"),
     ], 
     [
         sg.Button('Start Acquisition',pad=(30,10), expand_x=True, tooltip=tooltip_start),
@@ -206,10 +220,21 @@ while True:
 
         if arduino.in_waiting > 0:
             measurement = read_data()
-            data.append(float(measurement))
-            datat.append(time.time() - initial_t)
-            window["-LOG-"].update(enlaps(initial_t)+" - measured "+ str(measurement)+".\n" , append=True)
-            graph_update(ax, datat, data, fig_agg, rollSize)
+            teststring = measurement.replace('.','',1)
+
+            if teststring.isnumeric():
+                calcP = volts_to_pressure(measurement)
+
+                data.append(float(calcP))
+                datat.append(time.time() - initial_t)
+
+                window["-LOG-"].update(enlaps(initial_t)+" - measured: "+ str(measurement)+" V. Calc:" +str('{:0.2e}'.format(calcP))+ " Toor \n" , append=True)
+                
+                graph_update(ax, datat, data, fig_agg, rollSize)
+
+            else:
+                window["-LOG-"].update(str(measurement)+"\n" , append=True)
+            
             old_t = time.time()
        
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -236,6 +261,7 @@ while True:
         else:
             window["-CON FEEDBACK-"].update("Successful connection at: "+ values["-COM-"].split(":")[0])
             window["-LOG-"].update(enlaps(initial_t)+" - Successful connection at: "+ values["-COM-"].split(":")[0] +"\n" , append=True)
+            arduino.read_all()
             Connected = True
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -256,6 +282,13 @@ while True:
     elif event == "-checkbox-": 
         Rolling  = values["-checkbox-"]
         rollSize = int(values["-rolling-"])
+        if not Acquisition:
+            graph_update(ax, datat, data, fig_agg, rollSize)
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Behaviour of the LogScale checkbox
+    elif event == "-checklog-": 
+        LogScale  = values["-checklog-"]
         if not Acquisition:
             graph_update(ax, datat, data, fig_agg, rollSize)
 
