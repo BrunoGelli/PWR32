@@ -22,16 +22,28 @@ import os.path
 data    = []
 datat   = []
 
+dataCh0 = []
+dataCh1 = []
+dataCh2 = []
+dataCh3 = []
+timeCh0 = []
+timeCh1 = []
+timeCh2 = []
+timeCh3 = []
+
 Acquisition = False
 Connected   = False
 Rolling     = False
 LogScale    = False
+Written     = False
 
 initial_t   = time.time()
 today       = date.today()
 
 readFreq    = 2
 rollSize    = 200
+
+Channel     = 0;
 
 filename        = ""
 tooltip_logo    = 'Developed by Bruno Gelli, Aug 2022.\nMore information at github.com/BrunoGelli/PWR32'
@@ -52,12 +64,12 @@ def draw_figure(canvas, figure, loc=(0, 0)):
     return figure_canvas_agg
 
 #updates de graph
-def graph_update(axis, time, measurement, figure_handler, size):
+def graph_update(axis, time, measurement, figure_handler, size, xlabel, ylabel, title, C):
     axis.cla()
     axis.grid()
-    axis.set_yscale("log")
-    axis.set_xlabel("Time (s)")
-    axis.set_ylabel("Pressure (mBar)")
+    axis.set_title(title)
+    axis.set_xlabel(xlabel)
+    axis.set_ylabel(ylabel)
     if Rolling:
         time = time[-size:]
         measurement = measurement[-size:]
@@ -67,7 +79,7 @@ def graph_update(axis, time, measurement, figure_handler, size):
     else:
         axis.set_yscale("linear")
 
-    axis.plot(time, measurement,  color='b')
+    axis.plot(time, measurement,  color=C)
     figure_handler.draw()
 
 #writes to the serial buss
@@ -86,7 +98,7 @@ def enlaps(X):
     hours = round(enlapsed/3600,0)
     minut = round((enlapsed%3600)/60,0) 
     secon = round((enlapsed%3600)%60,2)
-    return str("["+str('{:02.0f}'.format(hours))+":"+str('{:02.0f}'.format(minut))+":"+str('{:04.1f}'.format(secon))+"]")
+    return str("["+str('{:02.0f}'.format(hours))+":"+str('{:02.0f}'.format(minut))+":"+str('{:03.1f}'.format(secon))+"]")
 
 #check the serial ports
 def serial_ports(lista):
@@ -123,14 +135,14 @@ file_list_column = [
         sg.Text("Choose the COM port where the device is:"),
     ],
     [
-        sg.Combo(COM_list,size=(49, 1), default_value="Select the port", enable_events=True, key="-COM-"),
+        sg.Combo(COM_list,size=(39, 1), default_value="Select the port", enable_events=True, key="-COM-"),
         sg.Button('Refresh'),
     ],
     [
         sg.Text("Once sure of the selection, connect the device:"),
     ],
     [
-        sg.Text("",size=(44, 1), background_color='white', text_color='black', enable_events=True, key="-CON FEEDBACK-"),
+        sg.Text("",size=(33, 1), background_color='white', text_color='black', enable_events=True, key="-CON FEEDBACK-"),
         sg.Button('Connect'),
     ],
     [
@@ -164,8 +176,8 @@ file_list_column = [
         sg.Text("Save acquired data:"),
     ],
     [     
-        sg.FolderBrowse(),
-        sg.In(default_text = str(today.strftime("%b-%d-%Y")),size=(25, 1), enable_events=True, key="-Save data FOLDER-"),
+        sg.FolderBrowse(target="-Save data FOLDER-"),
+        sg.In(default_text = "\\"+str(today.strftime("%b-%d-%Y")),size=(25, 1), enable_events=True, key="-Save data FOLDER-"),
         sg.Button('Save data', tooltip=tooltip_sdata),
         sg.Button('Save graph', tooltip=tooltip_sgraph),
     ],
@@ -174,7 +186,20 @@ file_list_column = [
 # second column
 image_viewer_column = [
     [
-        sg.Canvas(size=(1280, 720), key="-CANVAS-"),
+        sg.Canvas(size=(1230, 900), key="-CANVAS0-"),
+    ],    
+    [
+        sg.Canvas(size=(1230, 900), key="-CANVAS1-"),
+    ],
+]
+
+# third column
+image_viewer_column2 = [
+    [
+        sg.Canvas(size=(300, 500), key="-CANVAS2-"),
+    ],    
+    [
+        sg.Canvas(size=(300, 500), key="-CANVAS3-"),
     ],
 ]
 
@@ -184,23 +209,64 @@ layout = [
         sg.Column(file_list_column),
         sg.VSeperator(),
         sg.Column(image_viewer_column),
+        sg.VSeperator(),
+        sg.Column(image_viewer_column2),
     ]
 ]
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 # defining the plot and starting the timmer
 
-window = sg.Window("PWR32 host software", layout, size=(1780,750), resizable=True, finalize=True)
+window = sg.Window("PWR32 host software", layout, location = (0,0), size=(1700,900), resizable=True, finalize=True)
+window.Maximize()
 
-canvas_elem = window['-CANVAS-']
-canvas = canvas_elem.TKCanvas
 
-fig = Figure(figsize=(16, 9), dpi=80)
-ax = fig.add_subplot(111)
-ax.set_xlabel("Time (s)")
-ax.set_ylabel("Pressure (mBar)")
-ax.grid()
-fig_agg = draw_figure(canvas, fig)
+canvas_elem0 = window['-CANVAS0-']
+canvas0 = canvas_elem0.TKCanvas
+
+fig0 = Figure(figsize=(9, 6),dpi=80)
+ax0 = fig0.add_subplot(111)
+ax0.set_title("Channel 0 - Pressure")
+ax0.set_xlabel("Time (s)")
+ax0.set_ylabel("Pressure (mBar)")
+ax0.grid()
+fig_agg0 = draw_figure(canvas0, fig0)
+
+
+canvas_elem1 = window['-CANVAS1-']
+canvas1 = canvas_elem1.TKCanvas
+
+fig1 = Figure(figsize=(9, 6),dpi=80)
+ax1 = fig1.add_subplot(111)
+ax1.set_title("Channel 1 - Current")
+ax1.set_xlabel("Time (s)")
+ax1.set_ylabel("Current (A)")
+ax1.grid()
+fig_agg1 = draw_figure(canvas1, fig1)
+
+
+canvas_elem2 = window['-CANVAS2-']
+canvas2 = canvas_elem2.TKCanvas
+
+fig2 = Figure(figsize=(9, 6),dpi=80)
+ax2 = fig2.add_subplot(111)
+ax2.set_title("Channel 2 - Voltage")
+ax2.set_xlabel("Time (s)")
+ax2.set_ylabel("Voltage (V)")
+ax2.grid()
+fig_agg2 = draw_figure(canvas2, fig2)
+
+
+canvas_elem3 = window['-CANVAS3-']
+canvas3 = canvas_elem3.TKCanvas
+
+fig3 = Figure(figsize=(9, 6),dpi=80)
+ax3 = fig3.add_subplot(111)
+ax3.set_title("Channel 3 - Pressure")
+ax3.set_xlabel("Time (s)")
+ax3.set_ylabel("Pressure (mBar)")
+ax3.grid()
+fig_agg3 = draw_figure(canvas3, fig3)
 
 old_t = time.time()
 
@@ -214,29 +280,60 @@ while True:
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Arduino talk
+
     if Acquisition and delta > (1/readFreq):
-        if arduino.in_waiting == 0:
-            write_data('1')
+        
+        if arduino.in_waiting == 0 and Written == False:
+            Written = True
+            write_data(str(Channel))
 
-        if arduino.in_waiting > 0:
+        elif arduino.in_waiting > 0:
+            Written = False
             measurement = read_data()
-            teststring = measurement.replace('.','',1)
 
-            if teststring.isnumeric():
-                calcP = volts_to_pressure(measurement)
+            try:
+                DATA =  float(measurement)
 
-                data.append(float(calcP))
-                datat.append(time.time() - initial_t)
+                if Channel == 0:
+                    dataCh0.append(DATA);
+                    timeCh0.append(time.time() - initial_t);
+                    window["-LOG-"].update(enlaps(initial_t)+" - measured at CH0: "+ str(measurement)+" V. \n" , append=True)
+                    graph_update(ax0, timeCh0, dataCh0, fig_agg0, rollSize, "Time (s)", "Pressure (mBar)", "Channel 0 - Pressure", "k")
 
-                window["-LOG-"].update(enlaps(initial_t)+" - measured: "+ str(measurement)+" V. Calc:" +str('{:0.2e}'.format(calcP))+ " Toor \n" , append=True)
+                elif Channel == 1:
+                    dataCh1.append(DATA);
+                    timeCh1.append(time.time() - initial_t);
+                    window["-LOG-"].update(enlaps(initial_t)+" - measured at CH1: "+ str(measurement)+" V. \n" , append=True)
+                    graph_update(ax1, timeCh1, dataCh1, fig_agg1, rollSize, "Time (s)", "Current (A)", "Channel 1 - Current", "r")      
+
+                elif Channel == 2:
+                    dataCh2.append(DATA);
+                    timeCh2.append(time.time() - initial_t);
+                    window["-LOG-"].update(enlaps(initial_t)+" - measured at CH2: "+ str(measurement)+" V. \n" , append=True)
+                    graph_update(ax2, timeCh2, dataCh2, fig_agg2, rollSize, "Time (s)", "Voltage (V)", "Channel 2 - Voltage", "b")       
+
+                elif Channel == 3:
+                    dataCh3.append(DATA);
+                    timeCh3.append(time.time() - initial_t);
+                    window["-LOG-"].update(enlaps(initial_t)+" - measured at CH3: "+ str(measurement)+" V. \n" , append=True)
+                    graph_update(ax3, timeCh3, dataCh3, fig_agg3, rollSize, "Time (s)", "Pressure (mBar)", "Channel 3 - Pressure", "g")                
+
+                # calcP = volts_to_pressure(measurement)
+
+                # data.append(float(calcP))
+                # datat.append(time.time() - initial_t)
+
+                # window["-LOG-"].update(enlaps(initial_t)+" - measured: "+ str(measurement)+" V. Calc:" +str('{:0.2e}'.format(calcP))+ " Toor \n" , append=True)
                 
-                graph_update(ax, datat, data, fig_agg, rollSize)
+                # graph_update(ax, datat, data, fig_agg, rollSize)
 
-            else:
+            except:
                 window["-LOG-"].update(str(measurement)+"\n" , append=True)
             
             old_t = time.time()
-       
+            Channel = Channel + 1;
+            if Channel >= 4:
+                Channel = 0;
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # closing the window
     if event == "Exit" or event == sg.WIN_CLOSED:
@@ -275,7 +372,7 @@ while True:
 # Behaviour of the Stop Acquisition button
     elif event == "Stop Acquisition" and Connected and Acquisition: 
         Acquisition = False
-        window["-LOG-"].update(enlaps(initial_t)+" - Acquisition stopped. ("+str(len(data))+" points) \n" , append=True)
+        window["-LOG-"].update(enlaps(initial_t)+" - Acquisition stopped. ("+str(len(dataCh0))+" points at CH0) \n" , append=True)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Behaviour of the Rolling checkbox
@@ -283,14 +380,19 @@ while True:
         Rolling  = values["-checkbox-"]
         rollSize = int(values["-rolling-"])
         if not Acquisition:
-            graph_update(ax, datat, data, fig_agg, rollSize)
-
+            graph_update(ax0, timeCh0, dataCh0, fig_agg0, rollSize,"Time (s)", "Pressure (mBar)", "Channel 3 - Pressure", "k")
+            graph_update(ax1, timeCh1, dataCh1, fig_agg1, rollSize,"Time (s)", "Pressure (mBar)", "Channel 3 - Pressure", "r")
+            graph_update(ax2, timeCh2, dataCh2, fig_agg2, rollSize,"Time (s)", "Pressure (mBar)", "Channel 3 - Pressure", "b")
+            graph_update(ax3, timeCh3, dataCh3, fig_agg3, rollSize,"Time (s)", "Pressure (mBar)", "Channel 3 - Pressure", "g")
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Behaviour of the LogScale checkbox
     elif event == "-checklog-": 
         LogScale  = values["-checklog-"]
         if not Acquisition:
-            graph_update(ax, datat, data, fig_agg, rollSize)
+            graph_update(ax0, timeCh0, dataCh0, fig_agg0, rollSize,"Time (s)", "Pressure (mBar)", "Channel 3 - Pressure", "k")
+            graph_update(ax1, timeCh1, dataCh1, fig_agg1, rollSize,"Time (s)", "Pressure (mBar)", "Channel 3 - Pressure", "r")
+            graph_update(ax2, timeCh2, dataCh2, fig_agg2, rollSize,"Time (s)", "Pressure (mBar)", "Channel 3 - Pressure", "b")
+            graph_update(ax3, timeCh3, dataCh3, fig_agg3, rollSize,"Time (s)", "Pressure (mBar)", "Channel 3 - Pressure", "g")
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~    
 # Behaviour of the frequency slider
@@ -305,12 +407,39 @@ while True:
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Behaviour of the Save data button
     elif event == "Save data" and not Acquisition: 
-        if data:
-            filename = str(values["-Save data FOLDER-"]+".txt")
+        if dataCh0:
+            filename = str(values["-Save data FOLDER-"]+"\\"+str(today.strftime("%b-%d-%Y"))+"_CH0.txt")
             f = open(filename, "w")
-            f.write("measurements:\n")
-            for item in data:
-                f.write(str(item)+"\n")
+            f.write("data;time\n")
+            for (mesItem, timItem) in zip(dataCh0, timeCh0):
+                f.write(str(mesItem)+";"+str(timItem)+"\n")
+            f.close()
+            window["-LOG-"].update(enlaps(initial_t)+" - Data saved to "+ filename +" \n" , append=True)
+
+        if dataCh1:
+            filename = str(values["-Save data FOLDER-"]+"\\"+str(today.strftime("%b-%d-%Y"))+"_CH1.txt")
+            f = open(filename, "w")
+            f.write("data;time\n")
+            for (mesItem, timItem) in zip(dataCh1, timeCh1):
+                f.write(str(mesItem)+";"+str(timItem)+"\n")
+            f.close()
+            window["-LOG-"].update(enlaps(initial_t)+" - Data saved to "+ filename +" \n" , append=True)
+
+        if dataCh2:
+            filename = str(values["-Save data FOLDER-"]+"\\"+str(today.strftime("%b-%d-%Y"))+"_CH2.txt")
+            f = open(filename, "w")
+            f.write("data;time\n")
+            for (mesItem, timItem) in zip(dataCh2, timeCh2):
+                f.write(str(mesItem)+";"+str(timItem)+"\n")
+            f.close()
+            window["-LOG-"].update(enlaps(initial_t)+" - Data saved to "+ filename +" \n" , append=True)
+
+        if dataCh3:
+            filename = str(values["-Save data FOLDER-"]+"\\"+str(today.strftime("%b-%d-%Y"))+"_CH3.txt")
+            f = open(filename, "w")
+            f.write("data;time\n")
+            for (mesItem, timItem) in zip(dataCh3, timeCh3):
+                f.write(str(mesItem)+";"+str(timItem)+"\n")
             f.close()
             window["-LOG-"].update(enlaps(initial_t)+" - Data saved to "+ filename +" \n" , append=True)
 
@@ -320,9 +449,24 @@ while True:
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~    
 # Behaviour of the Save graph button
     elif event == "Save graph" and not Acquisition: 
-        if data:
-            filename = str(values["-Save data FOLDER-"]+".png")
-            fig.savefig(filename)
+        if dataCh0:
+            filename = str(values["-Save data FOLDER-"]+"\\"+str(today.strftime("%b-%d-%Y"))+"_CH0.png")
+            fig0.savefig(filename)
+            window["-LOG-"].update(enlaps(initial_t)+" - Figure saved to "+ filename +" \n" , append=True)
+
+        if dataCh1:
+            filename = str(values["-Save data FOLDER-"]+"\\"+str(today.strftime("%b-%d-%Y"))+"_CH1.png")
+            fig1.savefig(filename)
+            window["-LOG-"].update(enlaps(initial_t)+" - Figure saved to "+ filename +" \n" , append=True)
+
+        if dataCh2:
+            filename = str(values["-Save data FOLDER-"]+"\\"+str(today.strftime("%b-%d-%Y"))+"_CH2.png")
+            fig2.savefig(filename)
+            window["-LOG-"].update(enlaps(initial_t)+" - Figure saved to "+ filename +" \n" , append=True)
+
+        if dataCh3:
+            filename = str(values["-Save data FOLDER-"]+"\\"+str(today.strftime("%b-%d-%Y"))+"_CH3.png")
+            fig3.savefig(filename)
             window["-LOG-"].update(enlaps(initial_t)+" - Figure saved to "+ filename +" \n" , append=True)
 
         else:

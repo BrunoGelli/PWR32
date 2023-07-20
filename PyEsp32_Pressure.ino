@@ -4,6 +4,8 @@
 
 #include "config.h"
 
+#include <Wire.h>
+#include "Adafruit_ADS1X15.h"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // ~~~~~~~~~~~~~~~~~~~~~~~~~ definitions ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -19,8 +21,8 @@
 #define   WifiLED       33          // pin for the wifi status led
 #define   ledblink      100         // blink period of the led
 
-#define   CorrectLin    0           // pin for the wifi status led
-#define   CorrectAng    0.000805    // blink period of the led
+#define   CorrectLin    0.5328      // 
+#define   CorrectAng    0.0036      // 
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // ~~~~~~~~~~~~~~~~~~~~~~~~~ variable ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -45,6 +47,7 @@ AdafruitIO_Feed *counter = io.feed("pressure");
 TaskHandle_t Task1;
 TaskHandle_t Task2;
 
+Adafruit_ADS1115 ads1115;
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // ~~~~~~~~~~~~~~~~~~~~~~~~~ functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -116,7 +119,7 @@ void acquisition_status()
 
 double calibrate(int value)
 {
-    return value * CorrectAng - CorrectLin;
+    return value * CorrectAng + CorrectLin;
 }
 
 void check_connection()
@@ -152,15 +155,44 @@ void Task1code(void * parameters)
             delay(10);
         }
 
-        // request     = Serial.readString().toInt();
-        Serial.readString();//.toInt();
+        request     = Serial.readString().toInt();
+ 
 
-        DataTask1   = analogRead(AnalogPin);
+        int16_t adc;
 
+        switch (request) 
+        {
+            case 0:
+                adc = ads1115.readADC_SingleEnded(0);
+                break;
+
+            case 1:
+                adc = ads1115.readADC_SingleEnded(1);
+                break;
+
+            case 2:
+                adc = ads1115.readADC_SingleEnded(2);
+                break;
+
+            case 3:
+                adc = ads1115.readADC_SingleEnded(3);
+                break;
+
+            default:
+                adc = 666;
+                break;
+        }
+        
         delay(10);
 
-        // Core0Message(Verbose, DataTask1);                         //revisar!
-        Serial.print(calibrate(DataTask1), 4);
+        if (adc == 666)
+        {
+            Serial.print("Error in the request: ");
+            Serial.print(request);
+        }
+        else
+            Serial.print(ads1115.computeVolts(adc), 4);
+        
         Serial.print("\n");
 
         delay(10);
@@ -179,11 +211,13 @@ void setup()
 
     pinMode(WifiSwitch, INPUT);
     delay(10);
-    WifiEnable = digitalRead(WifiSwitch);
+    WifiEnable = false;// digitalRead(WifiSwitch);
 
     Serial.begin(115200);
     Serial.setTimeout(1);
-    analogReadResolution(12);
+
+    ads1115.begin();
+
 
     Serial.println("");
     Serial.println("~~~~~~~~~~~ starting the setup ~~~~~~~~~~~");
@@ -216,7 +250,7 @@ void setup()
 
 void loop() 
 {
-    WifiEnable = digitalRead(WifiSwitch);
+    WifiEnable = false;//digitalRead(WifiSwitch);
 
     if (WifiInit == true && WifiEnable == false)
     {
@@ -238,8 +272,8 @@ void loop()
         check_connection();
         
         DataTask2 = Core1Sampling();
-
         DataTask2 = calibrate(DataTask2);
+        DataTask2 = pow(10, (DataTask2/0.6)-12);
 
         Core1StartMessage(Verbose);
 
