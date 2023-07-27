@@ -47,7 +47,8 @@ AdafruitIO_Feed *counter = io.feed("pressure");
 TaskHandle_t Task1;
 TaskHandle_t Task2;
 
-Adafruit_ADS1115 ads1115;
+Adafruit_ADS1115 ads1115_01;
+Adafruit_ADS1115 ads1115_02;
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // ~~~~~~~~~~~~~~~~~~~~~~~~~ functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -163,19 +164,35 @@ void Task1code(void * parameters)
         switch (request) 
         {
             case 0:
-                adc = ads1115.readADC_SingleEnded(0);
+                adc = ads1115_01.readADC_SingleEnded(0);
                 break;
 
             case 1:
-                adc = ads1115.readADC_SingleEnded(1);
+                adc = ads1115_01.readADC_SingleEnded(1);
                 break;
 
             case 2:
-                adc = ads1115.readADC_SingleEnded(2);
+                adc = ads1115_01.readADC_SingleEnded(2);
                 break;
 
             case 3:
-                adc = ads1115.readADC_SingleEnded(3);
+                adc = ads1115_01.readADC_SingleEnded(3);
+                break;
+
+            case 4:
+                adc = ads1115_02.readADC_SingleEnded(0);
+                break;
+
+            case 5:
+                adc = ads1115_02.readADC_SingleEnded(1);
+                break;
+
+            case 6:
+                adc = ads1115_02.readADC_SingleEnded(2);
+                break;
+
+            case 7:
+                adc = ads1115_02.readADC_SingleEnded(3);
                 break;
 
             default:
@@ -191,7 +208,7 @@ void Task1code(void * parameters)
             Serial.print(request);
         }
         else
-            Serial.print(ads1115.computeVolts(adc), 4);
+            Serial.print(ads1115_01.computeVolts(adc), 4);
         
         Serial.print("\n");
 
@@ -216,7 +233,8 @@ void setup()
     Serial.begin(115200);
     Serial.setTimeout(1);
 
-    ads1115.begin();
+    ads1115_01.begin(0x48);
+    ads1115_02.begin(0x49);
 
 
     Serial.println("");

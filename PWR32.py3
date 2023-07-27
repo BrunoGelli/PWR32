@@ -451,22 +451,22 @@ while True:
     elif event == "Save graph" and not Acquisition: 
         if dataCh0:
             filename = str(values["-Save data FOLDER-"]+"\\"+str(today.strftime("%b-%d-%Y"))+"_CH0.png")
-            fig0.savefig(filename)
+            fig0.savefig(filename, dpi=300)
             window["-LOG-"].update(enlaps(initial_t)+" - Figure saved to "+ filename +" \n" , append=True)
 
         if dataCh1:
             filename = str(values["-Save data FOLDER-"]+"\\"+str(today.strftime("%b-%d-%Y"))+"_CH1.png")
-            fig1.savefig(filename)
+            fig1.savefig(filename, dpi=300)
             window["-LOG-"].update(enlaps(initial_t)+" - Figure saved to "+ filename +" \n" , append=True)
 
         if dataCh2:
             filename = str(values["-Save data FOLDER-"]+"\\"+str(today.strftime("%b-%d-%Y"))+"_CH2.png")
-            fig2.savefig(filename)
+            fig2.savefig(filename, dpi=300)
             window["-LOG-"].update(enlaps(initial_t)+" - Figure saved to "+ filename +" \n" , append=True)
 
         if dataCh3:
             filename = str(values["-Save data FOLDER-"]+"\\"+str(today.strftime("%b-%d-%Y"))+"_CH3.png")
-            fig3.savefig(filename)
+            fig3.savefig(filename, dpi=300)
             window["-LOG-"].update(enlaps(initial_t)+" - Figure saved to "+ filename +" \n" , append=True)
 
         else:
