@@ -15,6 +15,16 @@ import os.path
 
 
 
+import influxdb_client, os, time
+
+from influxdb_client import InfluxDBClient, Point, WritePrecision
+
+from influxdb_client.client.write_api import SYNCHRONOUS
+
+from datetime import datetime
+
+
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 # declaring some important variables
 
@@ -52,6 +62,17 @@ tooltip_stop    = 'Only active once device is connected'
 tooltip_sdata   = 'Only active when acquisition is stopped'
 tooltip_sgraph  = 'Only active when acquisition is stopped'
 
+
+
+token = os.environ.get("INFLUXDB_TOKEN")
+org = "3b837ab9c3c4b3e7"
+url = "http://reines.ifi.unicamp.br:8086"
+bucket="evaporadora"
+
+
+
+client = influxdb_client.InfluxDBClient(url=url, token=token, org=org)
+write_api =client.write_api(write_options=SYNCHRONOUS)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 #functions
@@ -318,14 +339,12 @@ while True:
                     window["-LOG-"].update(enlaps(initial_t)+" - measured at CH3: "+ str(measurement)+" V. \n" , append=True)
                     graph_update(ax3, timeCh3, dataCh3, fig_agg3, rollSize, "Time (s)", "Pressure (mBar)", "Channel 3 - Pressure", "g")                
 
-                # calcP = volts_to_pressure(measurement)
+                # elif Channel == 4:
+                #     dataCh4 = DATA;
 
-                # data.append(float(calcP))
-                # datat.append(time.time() - initial_t)
+                # elif Channel == 5:
+                #     dataCh5 = DATA;
 
-                # window["-LOG-"].update(enlaps(initial_t)+" - measured: "+ str(measurement)+" V. Calc:" +str('{:0.2e}'.format(calcP))+ " Toor \n" , append=True)
-                
-                # graph_update(ax, datat, data, fig_agg, rollSize)
 
             except:
                 window["-LOG-"].update(str(measurement)+"\n" , append=True)
@@ -334,6 +353,13 @@ while True:
             Channel = Channel + 1;
             if Channel >= 4:
                 Channel = 0;
+                point = (
+                    Point("teste_calibraca")
+                    .field("pressure", dataCh0[-1])
+                    .field("current", dataCh1[-1])
+                    .field("rate", dataCh2[-1])
+                    .field("voltage", dataCh3[-1])               )
+                write_api.write(bucket=bucket, org=org, record=point)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # closing the window
     if event == "Exit" or event == sg.WIN_CLOSED:

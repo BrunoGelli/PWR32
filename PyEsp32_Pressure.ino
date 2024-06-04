@@ -42,7 +42,7 @@ double CorAngCoef = 1;
 
 unsigned long time_acquisition = 0;
 
-AdafruitIO_Feed *counter = io.feed("pressure");
+// AdafruitIO_Feed *counter = io.feed("pressure");
 
 TaskHandle_t Task1;
 TaskHandle_t Task2;
@@ -125,21 +125,21 @@ double calibrate(int value)
 
 void check_connection()
 {
-    int counter = 0;
-    while(io.status() < AIO_CONNECTED)
-    {
-        Serial.print(".");
-        digitalWrite(WifiLED, LOW); 
-        delay(250);
-        digitalWrite(WifiLED, HIGH);
-        delay(250);
-        counter++;
-        if (counter>30)
-        {
-            Serial.print("Timeout! Restarting the board...");
-            ESP.restart();
-        }
-    }
+    // int counter = 0;
+    // while(io.status() < AIO_CONNECTED)
+    // {
+    //     Serial.print(".");
+    //     digitalWrite(WifiLED, LOW); 
+    //     delay(250);
+    //     digitalWrite(WifiLED, HIGH);
+    //     delay(250);
+    //     counter++;
+    //     if (counter>30)
+    //     {
+    //         Serial.print("Timeout! Restarting the board...");
+    //         ESP.restart();
+    //     }
+    // }
 
 }
 
@@ -164,52 +164,53 @@ void Task1code(void * parameters)
         switch (request) 
         {
             case 0:
-                adc = ads1115_01.readADC_SingleEnded(0);
+                // adc = ads1115_01.readADC_SingleEnded(0);
+                adc=ads1115_01.readADC_Differential_0_1( );
+                Serial.print(ads1115_01.computeVolts(adc), 4);
                 break;
 
             case 1:
                 adc = ads1115_01.readADC_SingleEnded(1);
+                Serial.print(ads1115_01.computeVolts(adc), 4);
                 break;
 
             case 2:
                 adc = ads1115_01.readADC_SingleEnded(2);
+                Serial.print(ads1115_01.computeVolts(adc), 4);
                 break;
 
             case 3:
                 adc = ads1115_01.readADC_SingleEnded(3);
+                Serial.print(ads1115_01.computeVolts(adc), 4);
                 break;
 
             case 4:
                 adc = ads1115_02.readADC_SingleEnded(0);
+                Serial.print(ads1115_02.computeVolts(adc), 4);
                 break;
 
             case 5:
                 adc = ads1115_02.readADC_SingleEnded(1);
+                Serial.print(ads1115_02.computeVolts(adc), 4);
                 break;
 
             case 6:
                 adc = ads1115_02.readADC_SingleEnded(2);
+                Serial.print(ads1115_02.computeVolts(adc), 4);
                 break;
 
             case 7:
                 adc = ads1115_02.readADC_SingleEnded(3);
+                Serial.print(ads1115_02.computeVolts(adc), 4);
                 break;
 
             default:
                 adc = 666;
+                Serial.print("Error in the request: ");
+                Serial.print(request);
                 break;
         }
-        
-        delay(10);
-
-        if (adc == 666)
-        {
-            Serial.print("Error in the request: ");
-            Serial.print(request);
-        }
-        else
-            Serial.print(ads1115_01.computeVolts(adc), 4);
-        
+                
         Serial.print("\n");
 
         delay(10);
@@ -233,8 +234,8 @@ void setup()
     Serial.begin(115200);
     Serial.setTimeout(1);
 
-    ads1115_01.begin(0x48);
-    ads1115_02.begin(0x49);
+    ads1115_01.begin(0x49);
+    ads1115_02.begin(0x48);
 
 
     Serial.println("");
@@ -244,12 +245,12 @@ void setup()
 
     if(WifiEnable)
     {
-        WifiInit = true;
-        Serial.print("Connecting to Adafruit IO... ");
-        io.connect();
-        check_connection();
-        Serial.println("done.");
-        Serial.println(io.statusText());
+        // WifiInit = true;
+        // Serial.print("Connecting to Adafruit IO... ");
+        // io.connect();
+        // check_connection();
+        // Serial.println("done.");
+        // Serial.println(io.statusText());
     }
     else
         Serial.println("Wifi data logging is off");
@@ -272,19 +273,19 @@ void loop()
 
     if (WifiInit == true && WifiEnable == false)
     {
-        Serial.println("Disconnecting from Adafruit IO.");
-        WifiInit == false;
-        digitalWrite(WifiLED,LOW);
-        Serial.println("done.");
+        // Serial.println("Disconnecting from Adafruit IO.");
+        // WifiInit == false;
+        // digitalWrite(WifiLED,LOW);
+        // Serial.println("done.");
     }
 
     if (WifiEnable)
     {
-        if (!WifiInit)
-        {   
-            Serial.print("Connecting to Adafruit IO... ");
-            io.connect();
-        }
+        // if (!WifiInit)
+        // {   
+        //     Serial.print("Connecting to Adafruit IO... ");
+        //     io.connect();
+        // }
         acquisition_status();
         
         check_connection();
@@ -295,8 +296,8 @@ void loop()
 
         Core1StartMessage(Verbose);
 
-        io.run(1,true);
-        counter->save(DataTask2);
+        // io.run(1,true);
+        // counter->save(DataTask2);
 
         digitalWrite(WifiLED, LOW); 
         delay(ledblink);
